@@ -1,0 +1,9 @@
+version: '3'
+
+tasks:
+
+  server:
+    desc: "Start a Vault server in development mode"
+    cmds:
+      - docker compose up -d vault
+    silent: true
