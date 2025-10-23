@@ -7,3 +7,21 @@ tasks:
     cmds:
       - docker compose up -d vault
     silent: true
+
+  cli:
+    desc: "Open a Vault CLI session"
+    cmds:
+      - docker exec -it vault sh
+    silent: true
+
+  setup_python:
+    desc: "Setup Python environment"
+    cmds:
+      - poetry install --no-root
+
+  get_secret_python:
+    desc: "Get a secret using a Python script"
+    deps:
+      - setup_python
+    cmds:
+      - poetry run python main.py
