@@ -1,0 +1,49 @@
+version: '3.7'
+
+services:
+  consul:
+    image: hashicorp/consul:latest
+    container_name: consul
+    command: 'agent -server -bootstrap -ui -node=consul-server -client=0.0.0.0'
+    ports:
+      - "8500:8500"
+    environment:
+      CONSUL_BIND_INTERFACE: 'eth0'
+    volumes:
+      - consul_data:/consul/data
+
+  vault:
+    image: hashicorp/vault:latest
+    container_name: vault-consul
+    cap_add:
+      - IPC_LOCK
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_ADDR: 'http://0.0.0.0:8200'
+      VAULT_LOCAL_CONFIG: |
+        {
+          "storage": {
+            "consul": {
+              "address": "consul:8500",
+              "path": "vault/"
+            }
+          },
+          "listener": {
+            "tcp": {
+              "address": "0.0.0.0:8200",
+              "tls_disable": true
+            }
+          },
+          "ui": true,
+          "disable_mlock": true
+        }
+    depends_on:
+      - consul
+    command: server
+    volumes:
+      - vault_data:/vault/data
+
+volumes:
+  consul_data:
+  vault_data:

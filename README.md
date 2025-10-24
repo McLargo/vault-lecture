@@ -98,7 +98,7 @@ the library to retrieve secrets from the Vault.
 To run the example, execute:
 
 ```bash
-task get_secret_python
+task get-secret-python
 ```
 
 > NOTE: This command will install any poetry dependencies and run the `main.py`
@@ -106,7 +106,43 @@ task get_secret_python
 
 ## Persistence storage
 
-<!-- TODO -->
+So far, this lecture uses the development mode of Vault, which is not suitable
+for production. In development mode, all data is stored in memory and will be
+lost when the server is stopped.
+
+For production, you should configure a persistent storage backend, such as
+Consul, PostgreSQL, MySQL, etc. See the
+[official documentation](https://developer.hashicorp.com/vault/docs/configuration/storage).
+In our lecture, we will configure Consul as the persistence storage. Consul is a
+tool (developed by the same company as Vault) that provides a distributed
+key-value store, service discovery, and health checking. It uses a volume to
+store your store secrets in a persistent storage (docker volumen in our
+example). You can stop the server and start it again, and your secrets will
+persist.
+
+By default, when Vault uses Consul, it will be sealed. This means, every time we
+start the vault server, we need to unseal it using the unseal keys provided
+during the initialization. To initialize Vault with Consul as the storage
+backend, you can use execute the following command:
+
+```bash
+task init-consul
+```
+
+> NOTE: Unseal is configured with only one key for simplicity. In production,
+> you should use multiple keys and a threshold to unseal the vault.
+
+After successful unsealing, you can access the Vault server using the UI and
+root token provided during initialization. Keep in mind that unseal keys/token
+cannot be generated again, so store it securely.
+
+To confirm everything is working, let's add some secret. Then, let's stop and
+start the Consul-based Vault server using:
+
+```bash
+task stop-start-consul
+task start-consul
+```
 
 ## How to implement your app Secret-free
 

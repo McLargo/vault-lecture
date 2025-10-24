@@ -2,11 +2,17 @@ version: '3'
 
 tasks:
 
+  # Tasks for Vault development mode
   server:
     desc: "Start a Vault server in development mode"
     cmds:
       - docker compose up -d vault
     silent: true
+
+  stop:
+    desc: "Stop the Vault server"
+    cmds:
+      - docker compose down
 
   cli:
     desc: "Open a Vault CLI session"
@@ -14,14 +20,56 @@ tasks:
       - docker exec -it vault sh
     silent: true
 
-  setup_python:
+  logs:
+    desc: "Show Vault server logs"
+    cmds:
+      - docker logs -f vault
+
+  # Tasks for Vault with Consul
+  init-consul:
+    desc: "Start a Vault server with Consul for persistence storage, initialize, unseal and login to the Vault server"
+    cmds:
+      - task: clean-consul
+      - docker compose -f docker-compose.consul.yaml up -d vault
+      - echo -e "Waiting 15 seconds for Vault/Consul services to start before initializing..."
+      - sleep 15
+      - docker exec vault-consul vault operator init -key-shares=1 -key-threshold=1 -format=json > ./vault-keys.json # without initializing, vault won't work with consul
+      - export UNSEAL_KEY=$(cat ./vault-keys.json | jq -r '.unseal_keys_b64[0]')
+      - export ROOT_TOKEN=$(cat ./vault-keys.json | jq -r '.root_token')
+      - docker exec -it vault-consul vault operator unseal $UNSEAL_KEY
+      - docker exec -it vault-consul vault login $ROOT_TOKEN
+    silent: true
+
+  start-consul:
+    desc: "Start a Vault server with Consul for persistence storage"
+    cmds:
+      - docker compose -f docker-compose.consul.yaml up -d vault
+      - echo -e "Waiting 15 seconds for Vault/Consul services to start..."
+      - sleep 15
+      - export UNSEAL_KEY=$(cat ./vault-keys.json | jq -r '.unseal_keys_b64[0]')
+      - export ROOT_TOKEN=$(cat ./vault-keys.json | jq -r '.root_token')
+      - docker exec -it vault-consul vault operator unseal $UNSEAL_KEY
+      - docker exec -it vault-consul vault login $ROOT_TOKEN
+
+  stop-consul:
+    desc: "Stop the Vault/Consul services"
+    cmds:
+      - docker compose -f docker-compose.consul.yaml down
+
+  clean-consul:
+    desc: "Clean up the Vault/Consul services, volumes and data"
+    cmds:
+      - docker compose -f docker-compose.consul.yaml down -v
+
+  # Python tasks
+  setup-python:
     desc: "Setup Python environment"
     cmds:
       - poetry install --no-root
 
-  get_secret_python:
+  get-secret-python:
     desc: "Get a secret using a Python script"
     deps:
-      - setup_python
+      - setup-python
     cmds:
       - poetry run python main.py
