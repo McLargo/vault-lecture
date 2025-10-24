@@ -18,12 +18,18 @@ control and audit log. It is written in Go and open source.
 
 ## Installation
 
+> To make things easier, we will use [Taskfile](https://taskfile.dev/) to manage
+> our commands. You can install it following the
+[instructions](https://taskfile.dev/#/installation). If you prefer not to use it,
+> you can check [Taskfile.yaml](Taskfile.yaml) file and run the commands
+> directly in your terminal.
+
 Vault can be installed
 [natively on your linux](https://developer.hashicorp.com/vault/docs/deploy/run-as-service),
-or you can use Docker. In this lecture we will use Docker.
+or you can use Docker. In this lecture we will use
+[Docker](https://docs.docker.com/engine/install/).
 
-To run the Vault server, you can use the provided `Taskfile.yaml` to start the
-server in development mode. Run the following command:
+To run the Vault server in development mode, just Run the following command:
 
 ```bash
 task server
@@ -48,8 +54,8 @@ After you create your engine, you can start adding secrets to it.
 
 ### Authentication Methods
 
-In our configuration, we used Token authentication method, which is the simplest
-one. But you can configure other methods such as OIDC, LDAP, github
+In our initial configuration, we are using Token authentication method, which is
+the simplest one. But you can configure other methods such as OIDC, LDAP, github
 username/password...
 
 ### ACL Policies
@@ -180,8 +186,8 @@ configure other parameters such as `secret_id_num_uses` and `token_ttl`
 according to your needs. This configuration defines how many times the secret ID
 can be used and the time-to-live of the token generated.
 
-4. Create a secret ID for the role. Get the secret ID, you will need it to
-   authenticate your application.
+4. Create a secret ID for the role and export into a environment variable, that
+   will be use for your application.
 
 ```bash
 export VAULT_SECRET_ID=$(docker exec vault-consul vault write -f -format=json auth/approle/role/<role-name>/secret-id | jq -r '.data.secret_id')
@@ -189,8 +195,8 @@ export VAULT_SECRET_ID=$(docker exec vault-consul vault write -f -format=json au
 
 Where `<role-name>` is the name of the role you created in step 3.
 
-5. Retrieve the Role ID for the role. You will need it to authenticate your
-   application.
+5. Retrieve the Role ID for the role. Export it into a environment variable,
+   that will be use for your application.
 
 ```bash
 export VAULT_ROLE_ID=$(docker exec vault-consul vault read -format=json auth/approle/role/<role-name>/role-id | jq -r '.data.role_id')
