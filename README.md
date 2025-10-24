@@ -3,6 +3,7 @@
 Security is a key aspect to consider in any application. Usually, as you develop
 any application, you can find there is sensitive information to use (secret)
 which cannot be exposed to the public (ej. API keys, database credentials, etc).
+Any leak of this information can have serious consequences.
 
 [Vault](https://github.com/hashicorp/vault) is a tool to securely store your
 secrets. It provides an interface to store and access secrets, with access
@@ -92,8 +93,8 @@ languages, such as:
 - [Golang](https://github.com/hashicorp/vault-client-go)
 
 In this lecture, we will use the Python client library `hvac` to interact with
-the Vault server. See the [main.py](main.py) file for an example of how to use
-the library to retrieve secrets from the Vault.
+the Vault server. See the [get-secret.py](get-secret.py) file for an example of
+how to use the library to retrieve secrets from the Vault.
 
 To run the example, execute:
 
@@ -101,8 +102,113 @@ To run the example, execute:
 task get-secret-python
 ```
 
-> NOTE: This command will install any poetry dependencies and run the `main.py`
-> file.
+> NOTE: This command will install any poetry dependencies and run the
+> `get-secret.py` file.
+
+## How to implement your app Secret-free
+
+As we have been discussing, the best practice for your application is to not store any secret in its code or
+configuration files. Instead, it should retrieve secrets from Vault at runtime,
+where your app is agnostic to how authentication and secret management is done.
+
+In the previous example, we used a root token to access the secrets. This is not
+a good practice, as the root token has full access to the Vault server. Instead,
+we should use a more restrictive token with limited permissions. We need to
+achieve two main goals:
+
+- Secrets to authenticate are dynamic, rotated periodically and injected at
+  runtime from outside the application.
+- Fine-grained access control to secrets.
+
+By following the next steps, you can ensure that your application is secure and
+that secrets are managed properly:
+
+1. **Authenticate your application**: Use an authentication method supported by
+   Vault (ej. AppRole, Kubernetes, etc) to authenticate your application and
+   retrieve a token.
+2. **Retrieve secrets**: Use the token to access the secrets stored in Vault.
+3. **Use secrets**: Use the retrieved secrets in your application as needed.
+4. **Rotate secrets**: Periodically rotate your secrets in Vault and update your
+   application to use the new secrets.
+
+Ideally, using K8s will be the best option to deploy your application, as it has
+native support for Vault integration using the
+[Vault Agent](https://developer.hashicorp.com/vault/docs/agent-and-proxy/agent). But in order to keep things simple, let's use a `AppRole` authentication method.
+
+### AppRole authentication method
+
+What we need to do is:
+
+- Add the AppRole authentication method to our Vault server.
+- Add new policies to access the secrets.
+- Create a new role with the policies assigned.
+- Retrieve the Role ID and Secret ID for the role created.
+
+You can create everything using the UI, but here are the steps to do it using
+the CLI:
+
+1. If not exist, create AppRole as Authentication method in Vault.
+
+```bash
+docker exec vault-consul vault auth enable approle
+```
+
+2. Create a policy that allows access to the secrets.
+
+```bash
+docker exec vault-consul sh -c 'vault policy write <policy-name> - <<EOF
+path "demo/data/API" {
+  capabilities = ["read", "list"]
+}
+EOF'
+```
+
+Where `<policy-name>` is the name of the policy you want to create.
+
+3. Create a new role inside `approle` with the policy recently created.
+
+```bash
+docker exec vault-consul vault write auth/approle/role/<role-name> \
+    token_policies="<policy-name>" \
+    secret_id_num_uses=10 \
+    token_ttl=1h
+```
+
+Where `<role-name>` is the name of the role you want to create, and
+`<policy-name>` is the name of the policy you created in step 2. Also, you can
+configure other parameters such as `secret_id_num_uses` and `token_ttl`
+according to your needs. This configuration defines how many times the secret ID
+can be used and the time-to-live of the token generated.
+
+4. Create a secret ID for the role. Get the secret ID, you will need it to
+   authenticate your application.
+
+```bash
+export VAULT_SECRET_ID=$(docker exec vault-consul vault write -f -format=json auth/approle/role/<role-name>/secret-id | jq -r '.data.secret_id')
+```
+
+Where `<role-name>` is the name of the role you created in step 3.
+
+5. Retrieve the Role ID for the role. You will need it to authenticate your
+   application.
+
+```bash
+export VAULT_ROLE_ID=$(docker exec vault-consul vault read -format=json auth/approle/role/<role-name>/role-id | jq -r '.data.role_id')
+```
+
+Now you have everything you need to authenticate your application using AppRole.
+See the [get-secret-free.py](get-secret-free.py) file for an example of how to
+use the AppRole authentication method to retrieve secrets from Vault. To run the
+example, execute:
+
+```bash
+task get-secret-free-python
+```
+
+Following this steps, you can ensure that your application does not store any
+secret, have access only to the secrets it needs and retrieves them securely
+from Vault at runtime. Any potential secret leak from the application code or
+configuration files is avoided.
 
 ## Persistence storage
 
@@ -143,10 +249,6 @@ start the Consul-based Vault server using:
 task stop-start-consul
 task start-consul
 ```
-
-## How to implement your app Secret-free
-
-<!-- TODO -->
 
 ## References
 

@@ -72,4 +72,11 @@ tasks:
     deps:
       - setup-python
     cmds:
-      - poetry run python main.py
+      - poetry run python get-secret.py
+
+  get-secret-free-python:
+    desc: "Get a secret using a Python script without hardcoding secrets"
+    deps:
+      - setup-python
+    cmds:
+      - poetry run python get-secret-free.py
