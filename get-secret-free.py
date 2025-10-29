@@ -7,7 +7,6 @@ VAULT_ADDR = "http://localhost:8200"
 VAULT_ROLE_ID = os.environ.get("VAULT_ROLE_ID")
 VAULT_SECRET_ID = os.environ.get("VAULT_SECRET_ID")
 
-
 # Secret Path and Key to Retrieve
 SECRET_PATH = "demo/API"
 SECRET_KEY = "mysecret"
@@ -17,8 +16,6 @@ def init_client(role_id: str, secret_id:str) -> hvac.Client | None:
     try:
         client = hvac.Client(url=VAULT_ADDR)
 
-        print(f"Using ROLE_ID: {role_id}")
-        print(f"Using SECRET_ID: {secret_id}")
         login_response = client.auth.approle.login(
             role_id=role_id,
             secret_id=secret_id
@@ -30,10 +27,13 @@ def init_client(role_id: str, secret_id:str) -> hvac.Client | None:
         return client
 
     except hvac.exceptions.InvalidRequest as e:
-        print(f"Error during authentication. Check your ROLE_ID and SECRET_ID values.")
+        print("Error during authentication. Check your VAULT_ROLE_ID and VAULT_SECRET_ID values.")
         print(f"Details: {e}")
+        return None
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
+        return None
+
 
 def get_secret(client, path, key):
     try:
@@ -48,7 +48,7 @@ def get_secret(client, path, key):
         print(f"Retrieved value for {key}: {secret_value}")
 
     except hvac.exceptions.Forbidden as e:
-        print(f"Access denied when retrieving secret. Check your client's permissions.")
+        print("Access denied when retrieving secret. Check your client's permissions.")
         print(f"Details: {e}")
     except hvac.exceptions.InvalidRequest as e:
         print(f"Error retrieving secret. Ensure the path ({SECRET_PATH}) and key ({SECRET_KEY}) are correct.")

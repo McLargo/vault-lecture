@@ -80,3 +80,10 @@ tasks:
       - setup-python
     cmds:
       - poetry run python get-secret-free.py
+
+  renew-secret-python:
+    desc: "Renew a secret using a Python script without hardcoding secrets"
+    deps:
+      - setup-python
+    cmds:
+      - poetry run python renew-secret.py

@@ -22,6 +22,8 @@ def init_client() -> hvac.Client | None:
 
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
+        return None
+
 
 def get_secret(client, path, key):
     try:

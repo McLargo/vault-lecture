@@ -113,9 +113,10 @@ task get-secret-python
 
 ## How to implement your app Secret-free
 
-As we have been discussing, the best practice for your application is to not store any secret in its code or
-configuration files. Instead, it should retrieve secrets from Vault at runtime,
-where your app is agnostic to how authentication and secret management is done.
+As we have been discussing, the best practice for your application is to not
+store any secret in its code or configuration files. Instead, it should retrieve
+secrets from Vault at runtime, where your app is agnostic to how authentication
+and secret management is done.
 
 In the previous example, we used a root token to access the secrets. This is not
 a good practice, as the root token has full access to the Vault server. Instead,
@@ -139,7 +140,8 @@ that secrets are managed properly:
 
 Ideally, using K8s will be the best option to deploy your application, as it has
 native support for Vault integration using the
-[Vault Agent](https://developer.hashicorp.com/vault/docs/agent-and-proxy/agent). But in order to keep things simple, let's use a `AppRole` authentication method.
+[Vault Agent](https://developer.hashicorp.com/vault/docs/agent-and-proxy/agent).
+But in order to keep things simple, let's use a `AppRole` authentication method.
 
 ### AppRole authentication method
 
@@ -211,10 +213,25 @@ example, execute:
 task get-secret-free-python
 ```
 
-Following this steps, you can ensure that your application does not store any
-secret, have access only to the secrets it needs and retrieves them securely
-from Vault at runtime. Any potential secret leak from the application code or
-configuration files is avoided.
+Before ttl expires or secret ID uses are exhausted, you need to create a new
+Secret ID or renew the token.
+
+```bash
+task renew-token-python
+```
+
+Steps above should be managed outside your application, for example using a
+CI/CD pipeline or infrastructure as code tools like Terraform. Your application
+should only be responsible for retrieving the Role ID and Secret ID from its
+environment variables and use them to authenticate and retrieve secrets from
+Vault. By following these steps, you can ensure that your application complies
+with the following best practices:
+
+- does not store any secret.
+- has access only to the secrets it needs.
+- retrieves them securely from Vault at runtime.
+- avoid any potential secret leak from your application code or configuration
+  files.
 
 ## Persistence storage
 
